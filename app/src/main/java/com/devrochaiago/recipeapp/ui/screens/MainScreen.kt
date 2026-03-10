@@ -55,7 +55,7 @@ fun MainScreen() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Home.route) { HomeScreen() }
-            composable(Screen.Search.route) { Text("Tela de Busca (Em breve)") }
+            composable(Screen.Search.route) { SearchScreen() }
             composable(Screen.Favorites.route) { Text("Tela de Favoritos (Em breve)") }
         }
     }

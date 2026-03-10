@@ -36,6 +36,19 @@ class MealRepository @Inject constructor(
         return dao.getAllFavorites()
     }
 
+    fun searchMeals(query: String): Flow<Resource<List<MealDto>>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = api.searchMeals(query)
+            val meals = response.meals ?: emptyList()
+            emit(Resource.Success(meals))
+        } catch (e: HttpException) {
+            emit(Resource.Error("Erro no servidor da API."))
+        } catch (e: IOException) {
+            emit(Resource.Error("Sem conexão com a internet."))
+        }
+    }
+
     suspend fun toggleFavorite(meal: MealDto, isCurrentlyFavorite: Boolean) {
         val entity = MealEntity(
             idMeal = meal.id,
