@@ -2,6 +2,7 @@ package com.devrochaiago.recipeapp.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,14 +24,16 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
 
     HomeScreenContent(
         state = state,
-        onRefresh = { viewModel.fetchRandomMeal() }
+        onRefresh = { viewModel.fetchRandomMeal() },
+        onSaveFavorite = { meal -> viewModel.saveToFavorites(meal) }
     )
 }
 
 @Composable
 fun HomeScreenContent(
     state: Resource<MealDto>,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onSaveFavorite: (MealDto) -> Unit = {}
 ) {
     Box(
         modifier = Modifier.fillMaxSize()
@@ -51,7 +54,7 @@ fun HomeScreenContent(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    
+
                     if (state !is Resource.Loading) {
                         Button(onClick = onRefresh) {
                             Text("Novo")
@@ -77,7 +80,13 @@ fun HomeScreenContent(
                             modifier = Modifier.fillMaxWidth(),
                             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                         ) {
-                            Column {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 AsyncImage(
                                     model = meal?.thumbnail,
                                     contentDescription = "Foto de ${meal?.name}",
@@ -85,7 +94,7 @@ fun HomeScreenContent(
                                         .fillMaxWidth()
                                         .height(200.dp)
                                 )
-                                Column(modifier = Modifier.padding(16.dp)) {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = meal?.name ?: "Sem Nome",
                                         style = MaterialTheme.typography.titleLarge,
@@ -95,6 +104,16 @@ fun HomeScreenContent(
                                         text = meal?.category ?: "Sem Categoria",
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+                                }
+
+                                if (meal != null) {
+                                    IconButton(onClick = { onSaveFavorite(meal) }) {
+                                        Icon(
+                                            imageVector = androidx.compose.material.icons.Icons.Default.FavoriteBorder,
+                                            contentDescription = "Guardar Favorito",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
                             }
                         }

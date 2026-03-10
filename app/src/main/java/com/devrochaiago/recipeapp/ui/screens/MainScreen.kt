@@ -56,7 +56,7 @@ fun MainScreen() {
         ) {
             composable(Screen.Home.route) { HomeScreen() }
             composable(Screen.Search.route) { SearchScreen() }
-            composable(Screen.Favorites.route) { Text("Tela de Favoritos (Em breve)") }
+            composable(Screen.Favorites.route) { FavoritesScreen() }
         }
     }
 }

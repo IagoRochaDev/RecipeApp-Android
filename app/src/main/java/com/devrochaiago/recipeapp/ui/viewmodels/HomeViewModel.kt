@@ -31,4 +31,11 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
+
+    // Adicione esta função no final da classe HomeViewModel
+    fun saveToFavorites(meal: MealDto) {
+        viewModelScope.launch {
+            repository.toggleFavorite(meal, isCurrentlyFavorite = false)
+        }
+    }
 }

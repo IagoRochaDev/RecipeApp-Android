@@ -36,6 +36,10 @@ class MealRepository @Inject constructor(
         return dao.getAllFavorites()
     }
 
+    suspend fun deleteFavorite(meal: MealEntity) {
+        dao.deleteFavorite(meal)
+    }
+
     fun searchMeals(query: String): Flow<Resource<List<MealDto>>> = flow {
         emit(Resource.Loading())
         try {
