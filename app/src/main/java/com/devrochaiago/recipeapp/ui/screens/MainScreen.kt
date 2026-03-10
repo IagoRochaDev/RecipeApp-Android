@@ -12,39 +12,42 @@ import androidx.navigation.compose.rememberNavController
 import com.devrochaiago.recipeapp.ui.navigation.Screen
 import androidx.compose.ui.tooling.preview.Preview
 import com.devrochaiago.recipeapp.ui.theme.RecipeAppTheme
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 
 
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
     val items = listOf(Screen.Home, Screen.Search, Screen.Favorites)
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
-
-                items.forEach { screen ->
-                    NavigationBarItem(
-                        icon = { Icon(screen.icon, contentDescription = screen.title) },
-                        label = { Text(screen.title) },
-                        selected = currentRoute == screen.route,
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primary
-                        ),
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+            if (currentRoute != null && !currentRoute.startsWith("detail/")) {
+                NavigationBar {
+                    items.forEach { screen ->
+                        NavigationBarItem(
+                            icon = { Icon(screen.icon, contentDescription = screen.title) },
+                            label = { Text(screen.title) },
+                            selected = currentRoute == screen.route,
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = MaterialTheme.colorScheme.primary
+                            ),
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -54,9 +57,35 @@ fun MainScreen() {
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Home.route) { HomeScreen() }
-            composable(Screen.Search.route) { SearchScreen() }
-            composable(Screen.Favorites.route) { FavoritesScreen() }
+            composable(Screen.Home.route) {
+                HomeScreen(
+                    onMealClick = { idReceita ->
+                        navController.navigate(Screen.Detail.createRoute(idReceita))
+                    }
+                )
+            }
+            composable(Screen.Search.route) {
+                SearchScreen(
+                    onMealClick = { idReceita ->
+                        navController.navigate(Screen.Detail.createRoute(idReceita))
+                    }
+                )
+            }
+            composable(Screen.Favorites.route) {
+                FavoritesScreen(
+                    onMealClick = { idReceita ->
+                        navController.navigate(Screen.Detail.createRoute(idReceita))
+                    }
+                )
+            }
+            composable(
+                route = Screen.Detail.route,
+                arguments = listOf(navArgument("mealId") { type = NavType.StringType })
+            ) {
+                DetailScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }

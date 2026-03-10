@@ -1,5 +1,6 @@
 package com.devrochaiago.recipeapp.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -18,14 +19,18 @@ import com.devrochaiago.recipeapp.ui.viewmodels.HomeViewModel
 import com.devrochaiago.recipeapp.util.Resource
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    onMealClick: (String) -> Unit,
+    viewModel: HomeViewModel = hiltViewModel()
+) {
     // Observamos o estado que vem do ViewModel
     val state by viewModel.randomMealState.collectAsState()
 
     HomeScreenContent(
         state = state,
         onRefresh = { viewModel.fetchRandomMeal() },
-        onSaveFavorite = { meal -> viewModel.saveToFavorites(meal) }
+        onSaveFavorite = { meal -> viewModel.saveToFavorites(meal) },
+        onNavigateToDetail = onMealClick
     )
 }
 
@@ -33,7 +38,8 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
 fun HomeScreenContent(
     state: Resource<MealDto>,
     onRefresh: () -> Unit,
-    onSaveFavorite: (MealDto) -> Unit = {}
+    onSaveFavorite: (MealDto) -> Unit = {},
+    onNavigateToDetail: (String) -> Unit = {}
 ) {
     Box(
         modifier = Modifier.fillMaxSize()
@@ -77,15 +83,16 @@ fun HomeScreenContent(
                     is Resource.Success -> {
                         val meal = state.data
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { meal?.let { onNavigateToDetail(it.id) } },
                             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 AsyncImage(
                                     model = meal?.thumbnail,
@@ -94,25 +101,32 @@ fun HomeScreenContent(
                                         .fillMaxWidth()
                                         .height(200.dp)
                                 )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = meal?.name ?: "Sem Nome",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = meal?.category ?: "Sem Categoria",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-
-                                if (meal != null) {
-                                    IconButton(onClick = { onSaveFavorite(meal) }) {
-                                        Icon(
-                                            imageVector = androidx.compose.material.icons.Icons.Default.FavoriteBorder,
-                                            contentDescription = "Guardar Favorito",
-                                            tint = MaterialTheme.colorScheme.primary
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = meal?.name ?: "Sem Nome",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold
                                         )
+                                        Text(
+                                            text = meal?.category ?: "Sem Categoria",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+
+                                    if (meal != null) {
+                                        IconButton(onClick = { onSaveFavorite(meal) }) {
+                                            Icon(
+                                                imageVector = androidx.compose.material.icons.Icons.Default.FavoriteBorder,
+                                                contentDescription = "Guardar Favorito",
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -163,28 +177,6 @@ fun HomeScreenPreview() {
                     measure5 = "1/4 teaspoon"
                 )
             ),
-            onRefresh = {}
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenLoadingPreview() {
-    RecipeAppTheme {
-        HomeScreenContent(
-            state = Resource.Loading(),
-            onRefresh = {}
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenErrorPreview() {
-    RecipeAppTheme {
-        HomeScreenContent(
-            state = Resource.Error("Erro ao carregar receita"),
             onRefresh = {}
         )
     }

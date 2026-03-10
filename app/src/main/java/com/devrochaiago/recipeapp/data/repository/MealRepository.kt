@@ -68,4 +68,21 @@ class MealRepository @Inject constructor(
             dao.insertFavorite(entity)
         }
     }
+
+    fun getMealById(id: String): Flow<Resource<MealDto>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = api.getMealById(id)
+            val meal = response.meals?.firstOrNull()
+            if (meal != null) {
+                emit(Resource.Success(meal))
+            } else {
+                emit(Resource.Error("Receita não encontrada."))
+            }
+        } catch (e: HttpException) {
+            emit(Resource.Error("Erro no servidor da API."))
+        } catch (e: IOException) {
+            emit(Resource.Error("Sem conexão com a internet."))
+        }
+    }
 }
