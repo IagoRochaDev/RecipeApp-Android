@@ -152,7 +152,7 @@ fun HomeScreenContent(
     }
 }
 
-@Preview(showBackground = true)
+/*@Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
     RecipeAppTheme {
@@ -181,3 +181,4 @@ fun HomeScreenPreview() {
         )
     }
 }
+*/
