@@ -18,6 +18,11 @@ import coil.compose.AsyncImage
 import com.devrochaiago.recipeapp.ui.viewmodels.DetailViewModel
 import com.devrochaiago.recipeapp.util.Resource
 import com.devrochaiago.recipeapp.util.getIngredientsList
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.ui.graphics.Color
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,6 +61,7 @@ fun DetailScreen(
                     val meal = (state as Resource.Success).data
                     if (meal != null) {
                         val ingredients = meal.getIngredientsList()
+                        val context = LocalContext.current
 
                         Column(
                             modifier = Modifier
@@ -79,6 +85,8 @@ fun DetailScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Spacer(modifier = Modifier.height(24.dp))
+
+
                                 Text(
                                     text = "Ingredientes",
                                     style = MaterialTheme.typography.titleLarge,
@@ -104,7 +112,24 @@ fun DetailScreen(
                                         }
                                     }
                                 }
-
+                                if (!meal.youtubeUrl.isNullOrBlank()) {
+                                    Button(
+                                        onClick = {
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(meal.youtubeUrl))
+                                            context.startActivity(intent)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE52D27)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PlayArrow,
+                                            contentDescription = "Ícone de Play",
+                                            tint = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(text = "Assistir no YouTube", color = Color.White, fontWeight = FontWeight.Bold)
+                                    }
+                                }
                                 Spacer(modifier = Modifier.height(24.dp))
                                 Text(
                                     text = "Modo de Preparo",
