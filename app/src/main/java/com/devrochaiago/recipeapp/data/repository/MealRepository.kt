@@ -53,13 +53,35 @@ class MealRepository @Inject constructor(
         }
     }
 
+     fun getMealsByCategory(category: String): Flow<Resource<List<MealDto>>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = api.getMealsByCategory(category)
+            val meals = response.meals ?: emptyList()
+            emit(Resource.Success(meals))
+        } catch (e: Exception) {
+            emit(Resource.Error("Erro ao filtrar por categoria: ${e.message}"))
+        }
+    }
+
+     fun getMealsByArea(area: String): Flow<Resource<List<MealDto>>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = api.getMealsByArea(area)
+            val meals = response.meals ?: emptyList()
+            emit(Resource.Success(meals))
+        } catch (e: Exception) {
+            emit(Resource.Error("Erro ao filtrar por região: ${e.message}"))
+        }
+    }
+
     suspend fun toggleFavorite(meal: MealDto, isCurrentlyFavorite: Boolean) {
         val entity = MealEntity(
             idMeal = meal.id,
             name = meal.name,
-            category = meal.category,
-            thumbnail = meal.thumbnail,
-            instructions = meal.instructions
+            category = meal.category ?: "",
+            thumbnail = meal.thumbnail ?: "",
+            instructions = meal.instructions ?: ""
         )
 
         if (isCurrentlyFavorite) {

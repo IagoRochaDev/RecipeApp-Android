@@ -21,6 +21,12 @@ interface MealApi {
     @GET("search.php")
     suspend fun searchMeals(@Query("s") query: String): MealResponse
 
+    @GET("filter.php")
+    suspend fun getMealsByCategory(@Query("c") category: String): MealResponse
+
+    @GET("filter.php")
+    suspend fun getMealsByArea(@Query("a") area: String): MealResponse
+
     companion object {
         const val BASE_URL = "https://www.themealdb.com/api/json/v1/1/"
     }

@@ -20,21 +20,62 @@ class SearchViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _searchResult = MutableStateFlow<Resource<List<MealDto>>>(Resource.Success(emptyList()))
-    val searchResult: StateFlow<Resource<List<MealDto>>> = _searchResult.asStateFlow()
+    private val _searchState = MutableStateFlow<Resource<List<MealDto>>>(Resource.Success(emptyList()))
+    val searchState: StateFlow<Resource<List<MealDto>>> = _searchState.asStateFlow()
 
-    fun onSearchQueryChange(newQuery: String) {
-        _searchQuery.value = newQuery
-    }
+    private val _selectedFilter = MutableStateFlow<String?>(null)
+    val selectedFilter: StateFlow<String?> = _selectedFilter.asStateFlow()
 
-    fun executeSearch() {
-        val query = _searchQuery.value
-        if (query.isBlank()) return
+    // Listas conhecidas para a Busca Inteligente
+    val categories = listOf("Beef", "Chicken", "Dessert", "Pasta", "Seafood", "Vegan", "Breakfast")
+    val areas = listOf("Italian", "Mexican", "Japanese", "Indian", "French", "American")
+
+    // BUSCA INTELIGENTE: Avalia o texto e decide o endpoint
+    fun searchMeals(query: String) {
+        _searchQuery.value = query
+        _selectedFilter.value = null
+
+        if (query.isBlank()) {
+            _searchState.value = Resource.Success(emptyList())
+            return
+        }
 
         viewModelScope.launch {
-            repository.searchMeals(query).collect { result ->
-                _searchResult.value = result
+            // Verifica se a palavra escrita corresponde exatamente a uma categoria ou região (ignorando maiúsculas/minúsculas)
+            val isCategory = categories.any { it.equals(query, ignoreCase = true) }
+            val isArea = areas.any { it.equals(query, ignoreCase = true) }
+
+            when {
+                isCategory -> {
+                    val exactCategory = categories.first { it.equals(query, ignoreCase = true) }
+                    repository.getMealsByCategory(exactCategory).collect { _searchState.value = it }
+                }
+                isArea -> {
+                    val exactArea = areas.first { it.equals(query, ignoreCase = true) }
+                    repository.getMealsByArea(exactArea).collect { _searchState.value = it }
+                }
+                else -> {
+                    // Se não for nem categoria nem região, faz a busca normal pelo nome do prato
+                    repository.searchMeals(query).collect { _searchState.value = it }
+                }
             }
+        }
+    }
+
+    // Mantemos as funções para quando o utilizador clica nos botões (Chips)
+    fun filterByCategory(category: String) {
+        _searchQuery.value = category // Mostra a categoria na barra
+        _selectedFilter.value = category
+        viewModelScope.launch {
+            repository.getMealsByCategory(category).collect { _searchState.value = it }
+        }
+    }
+
+    fun filterByArea(area: String) {
+        _searchQuery.value = area // Mostra a região na barra
+        _selectedFilter.value = area
+        viewModelScope.launch {
+            repository.getMealsByArea(area).collect { _searchState.value = it }
         }
     }
 }
