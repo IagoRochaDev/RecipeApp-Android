@@ -17,6 +17,7 @@ import com.devrochaiago.recipeapp.data.remote.MealDto
 import com.devrochaiago.recipeapp.ui.theme.RecipeAppTheme
 import com.devrochaiago.recipeapp.ui.viewmodels.HomeViewModel
 import com.devrochaiago.recipeapp.util.Resource
+import com.devrochaiago.recipeapp.util.shimmerEffect
 
 @Composable
 fun HomeScreen(
@@ -41,109 +42,105 @@ fun HomeScreenContent(
     onSaveFavorite: (MealDto) -> Unit = {},
     onNavigateToDetail: (String) -> Unit = {}
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize()
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp)
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp)
-        ) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Receita do Dia \uD83C\uDF7D\uFE0F",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Receita do Dia \uD83C\uDF7D\uFE0F",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
 
-                    if (state !is Resource.Loading) {
-                        Button(onClick = onRefresh) {
-                            Text("Novo")
-                        }
+                if (state !is Resource.Loading) {
+                    Button(onClick = onRefresh) {
+                        Text("Novo")
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
             }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
-            item {
-                when (state) {
-                    is Resource.Loading -> {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                    is Resource.Success -> {
-                        val meal = state.data
-                        Card(
+        when (state) {
+            is Resource.Loading -> {
+                items(1) {
+                    MealCardShimmer()
+                }
+            }
+            is Resource.Success -> {
+                item {
+                    val meal = state.data
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .clickable { meal?.let { onNavigateToDetail(it.id) } },
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { meal?.let { onNavigateToDetail(it.id) } },
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column(
+                            AsyncImage(
+                                model = meal?.thumbnail,
+                                contentDescription = "Foto de ${meal?.name}",
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                    .height(200.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                AsyncImage(
-                                    model = meal?.thumbnail,
-                                    contentDescription = "Foto de ${meal?.name}",
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(200.dp)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = meal?.name ?: "Sem Nome",
-                                            style = MaterialTheme.typography.titleLarge,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            text = meal?.category ?: "Sem Categoria",
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = meal?.name ?: "Sem Nome",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = meal?.category ?: "Sem Categoria",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
 
-                                    if (meal != null) {
-                                        IconButton(onClick = { onSaveFavorite(meal) }) {
-                                            Icon(
-                                                imageVector = androidx.compose.material.icons.Icons.Default.FavoriteBorder,
-                                                contentDescription = "Guardar Favorito",
-                                                tint = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
+                                if (meal != null) {
+                                    IconButton(onClick = { onSaveFavorite(meal) }) {
+                                        Icon(
+                                            imageVector = androidx.compose.material.icons.Icons.Default.FavoriteBorder,
+                                            contentDescription = "Guardar Favorito",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
                                     }
                                 }
                             }
                         }
                     }
-                    is Resource.Error -> {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = state.message ?: "Erro desconhecido",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Button(onClick = onRefresh, modifier = Modifier.padding(top = 8.dp)) {
-                                Text("Tentar novamente")
-                            }
+                }
+            }
+            is Resource.Error -> {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = state.message ?: "Erro desconhecido",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Button(onClick = onRefresh, modifier = Modifier.padding(top = 8.dp)) {
+                            Text("Tentar novamente")
                         }
                     }
                 }
@@ -152,33 +149,41 @@ fun HomeScreenContent(
     }
 }
 
-/*@Preview(showBackground = true)
 @Composable
-fun HomeScreenPreview() {
-    RecipeAppTheme {
-        HomeScreenContent(
-            state = Resource.Success(
-                MealDto(
-                    id = "1",
-                    name = "Teriyaki Chicken Casserole",
-                    category = "Chicken",
-                    instructions = "Preheat oven to 350°F (175°C).",
-                    thumbnail = "https://www.themealdb.com/images/media/meals/wvpsxx1468256321.jpg",
-                    youtubeUrl = null,
-                    ingredient1 = "soy sauce",
-                    ingredient2 = "water",
-                    ingredient3 = "brown sugar",
-                    ingredient4 = "ground ginger",
-                    ingredient5 = "garlic powder",
-                    measure1 = "3/4 cup",
-                    measure2 = "1/2 cup",
-                    measure3 = "1/4 cup",
-                    measure4 = "1/2 teaspoon",
-                    measure5 = "1/4 teaspoon"
+fun MealCardShimmer() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .height(200.dp)
+                .shimmerEffect()
+            )
+
+            Column(modifier = Modifier.padding(16.dp)) {
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(24.dp)
+                    .shimmerEffect()
                 )
-            ),
-            onRefresh = {}
-        )
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.4f)
+                        .height(16.dp)
+                    .shimmerEffect()
+                )
+            }
+        }
     }
 }
-*/
