@@ -1,3 +1,42 @@
 <resources>
     <string name="app_name">RecipeApp</string>
+
+    <string name="error_unknown">Unknown error</string>
+    <string name="error_load_details">Error loading details</string>
+    <string name="retry">Retry</string>
+
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_favorites">Favorites</string>
+    <string name="nav_details">Details</string>
+
+    <string name="home_recipe_label">Recipe</string>
+    <string name="home_recipe_title">Everyday</string>
+    <string name="home_button_new">New</string>
+    <string name="home_error_no_recipe">No recipe found.</string>
+
+    <string name="search_placeholder">Search recipe, category...</string>
+    <string name="search_filters">Search Filters</string>
+    <string name="search_categories">Categories</string>
+    <string name="search_areas">Regions (Cuisine)</string>
+    <string name="search_no_results">No recipes found.</string>
+    <string name="search_icon_desc">Search</string>
+    <string name="search_filters_icon_desc">Filters</string>
+
+    <string name="favorites_title">My Recipes \uD83D\uDCDA</string>
+    <string name="favorites_empty">You haven\'t saved any favorites yet.</string>
+
+    <string name="detail_top_bar">Preparation</string>
+    <string name="detail_category">Category: %1$s</string>
+    <string name="detail_ingredients">Ingredients</string>
+    <string name="detail_youtube">Watch on YouTube</string>
+    <string name="detail_instructions">Instructions</string>
+    <string name="detail_no_instructions">No instructions available.</string>
+    <string name="detail_back">Back</string>
+
+    <string name="meal_card_no_instructions">Tap \'Preparation\' to discover the secret of this recipe!</string>
+    <string name="meal_card_expand">Expand details</string>
+    <string name="meal_card_favorite">Favorite</string>
+    <string name="meal_card_action_button">Preparation</string>
+
 </resources>

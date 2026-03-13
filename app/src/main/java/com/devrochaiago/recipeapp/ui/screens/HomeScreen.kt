@@ -1,36 +1,37 @@
 package com.devrochaiago.recipeapp.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
+import com.devrochaiago.recipeapp.R
 import com.devrochaiago.recipeapp.data.remote.MealDto
-import com.devrochaiago.recipeapp.ui.theme.RecipeAppTheme
+import com.devrochaiago.recipeapp.ui.components.MealCard
+import com.devrochaiago.recipeapp.ui.components.MealCardShimmer
 import com.devrochaiago.recipeapp.ui.viewmodels.HomeViewModel
 import com.devrochaiago.recipeapp.util.Resource
-import com.devrochaiago.recipeapp.util.shimmerEffect
 
 @Composable
 fun HomeScreen(
     onMealClick: (String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-    // Observamos o estado que vem do ViewModel
     val state by viewModel.randomMealState.collectAsState()
+    val favoriteIds by viewModel.favoriteIds.collectAsState()
 
     HomeScreenContent(
         state = state,
+        favoriteIds = favoriteIds,
         onRefresh = { viewModel.fetchRandomMeal() },
-        onSaveFavorite = { meal -> viewModel.saveToFavorites(meal) },
+        onToggleFavorite = { meal -> viewModel.toggleFavorite(meal) },
         onNavigateToDetail = onMealClick
     )
 }
@@ -38,13 +39,14 @@ fun HomeScreen(
 @Composable
 fun HomeScreenContent(
     state: Resource<MealDto>,
+    favoriteIds: Set<String>,
     onRefresh: () -> Unit,
-    onSaveFavorite: (MealDto) -> Unit = {},
+    onToggleFavorite: (MealDto) -> Unit = {},
     onNavigateToDetail: (String) -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp)
+        contentPadding = PaddingValues(20.dp)
     ) {
         item {
             Row(
@@ -52,20 +54,41 @@ fun HomeScreenContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Receita do Dia \uD83C\uDF7D\uFE0F",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Column {
+                    Text(
+                        text = stringResource(id = R.string.home_recipe_label),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = stringResource(id = R.string.home_recipe_title),
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
 
                 if (state !is Resource.Loading) {
-                    Button(onClick = onRefresh) {
-                        Text("Novo")
+                    Button(
+                        onClick = onRefresh,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.home_button_new),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
         when (state) {
@@ -77,112 +100,23 @@ fun HomeScreenContent(
             is Resource.Success -> {
                 item {
                     val meal = state.data
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                            .clickable { meal?.let { onNavigateToDetail(it.id) } },
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            AsyncImage(
-                                model = meal?.thumbnail,
-                                contentDescription = "Foto de ${meal?.name}",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = meal?.name ?: "Sem Nome",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = meal?.category ?: "Sem Categoria",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-
-                                if (meal != null) {
-                                    IconButton(onClick = { onSaveFavorite(meal) }) {
-                                        Icon(
-                                            imageVector = androidx.compose.material.icons.Icons.Default.FavoriteBorder,
-                                            contentDescription = "Guardar Favorito",
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                    if (meal != null) {
+                        MealCard(
+                            meal = meal,
+                            isFavorite = favoriteIds.contains(meal.id),
+                            onToggleFavorite = { onToggleFavorite(meal) },
+                            onNavigateToDetail = { onNavigateToDetail(meal.id) }
+                        )
                     }
                 }
             }
             is Resource.Error -> {
                 item {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = state.message ?: "Erro desconhecido",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Button(onClick = onRefresh, modifier = Modifier.padding(top = 8.dp)) {
-                            Text("Tentar novamente")
-                        }
-                    }
+                    Text(
+                        text = state.message ?: stringResource(id = R.string.error_unknown),
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun MealCardShimmer() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .height(200.dp)
-                .shimmerEffect()
-            )
-
-            Column(modifier = Modifier.padding(16.dp)) {
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.7f)
-                        .height(24.dp)
-                    .shimmerEffect()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.4f)
-                        .height(16.dp)
-                    .shimmerEffect()
-                )
             }
         }
     }

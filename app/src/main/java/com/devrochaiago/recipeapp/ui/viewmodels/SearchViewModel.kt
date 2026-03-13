@@ -7,8 +7,11 @@ import com.devrochaiago.recipeapp.data.repository.MealRepository
 import com.devrochaiago.recipeapp.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,11 +29,13 @@ class SearchViewModel @Inject constructor(
     private val _selectedFilter = MutableStateFlow<String?>(null)
     val selectedFilter: StateFlow<String?> = _selectedFilter.asStateFlow()
 
-    // Listas conhecidas para a Busca Inteligente
+    val favoriteIds: StateFlow<Set<String>> = repository.getFavorites()
+        .map { list -> list.map { it.idMeal }.toSet() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
     val categories = listOf("Beef", "Chicken", "Dessert", "Pasta", "Seafood", "Vegan", "Breakfast")
     val areas = listOf("Italian", "Mexican", "Japanese", "Indian", "French", "American")
 
-    // BUSCA INTELIGENTE: Avalia o texto e decide o endpoint
     fun searchMeals(query: String) {
         _searchQuery.value = query
         _selectedFilter.value = null
@@ -41,7 +46,6 @@ class SearchViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // Verifica se a palavra escrita corresponde exatamente a uma categoria ou região (ignorando maiúsculas/minúsculas)
             val isCategory = categories.any { it.equals(query, ignoreCase = true) }
             val isArea = areas.any { it.equals(query, ignoreCase = true) }
 
@@ -55,16 +59,14 @@ class SearchViewModel @Inject constructor(
                     repository.getMealsByArea(exactArea).collect { _searchState.value = it }
                 }
                 else -> {
-                    // Se não for nem categoria nem região, faz a busca normal pelo nome do prato
                     repository.searchMeals(query).collect { _searchState.value = it }
                 }
             }
         }
     }
 
-    // Mantemos as funções para quando o utilizador clica nos botões (Chips)
     fun filterByCategory(category: String) {
-        _searchQuery.value = category // Mostra a categoria na barra
+        _searchQuery.value = category
         _selectedFilter.value = category
         viewModelScope.launch {
             repository.getMealsByCategory(category).collect { _searchState.value = it }
@@ -72,10 +74,17 @@ class SearchViewModel @Inject constructor(
     }
 
     fun filterByArea(area: String) {
-        _searchQuery.value = area // Mostra a região na barra
+        _searchQuery.value = area
         _selectedFilter.value = area
         viewModelScope.launch {
             repository.getMealsByArea(area).collect { _searchState.value = it }
+        }
+    }
+
+    fun toggleFavorite(meal: MealDto) {
+        val isFavorite = favoriteIds.value.contains(meal.id)
+        viewModelScope.launch {
+            repository.toggleFavorite(meal, isCurrentlyFavorite = isFavorite)
         }
     }
 }
