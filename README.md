@@ -19,8 +19,6 @@ A native Android application developed to demonstrate the best practices and mod
 
 ### 📱 Screenshots & Demo
 
-> **Note:** *[Add your screenshots or a GIF here. A GIF showing the Shimmer Effect and Smart Search is highly recommended!]*
-
 <div align="center">
   <img src="screenshots/Screenshot_2.png" width="200"/> &nbsp;&nbsp;
   <img src="screenshots/Screenshot_3.png" width="200"/> &nbsp;&nbsp;
