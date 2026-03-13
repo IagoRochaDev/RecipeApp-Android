@@ -25,7 +25,11 @@ A native Android application developed to demonstrate the best practices and mod
   <img src="screenshots/Screenshot_2.png" width="200"/> &nbsp;&nbsp;
   <img src="screenshots/Screenshot_3.png" width="200"/> &nbsp;&nbsp;
   <img src="screenshots/Screenshot_4.png" width="200"/> &nbsp;&nbsp;
+  <img src="screenshots/Screenshot_5.png" width="200"/> &nbsp;&nbsp;
+  <img src="screenshots/Screenshot_6.png" width="200"/> &nbsp;&nbsp;
   <img src="screenshots/Screenshot_7.png" width="200"/>
+
+
 </div>
 
 ### ✨ Key Features (Highlights)
