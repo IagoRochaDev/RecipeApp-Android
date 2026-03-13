@@ -11,11 +11,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.devrochaiago.recipeapp.R
 import com.devrochaiago.recipeapp.data.remote.MealDto
 import com.devrochaiago.recipeapp.util.shimmerEffect
 
@@ -84,14 +86,14 @@ fun MealCard(
                         ) {
                             Icon(
                                 imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Expandir detalhes",
+                                contentDescription = stringResource(id = R.string.meal_card_expand),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
                     } else {
                         // Caso não haja descrição (comum em filtros por categoria/área)
                         Text(
-                            text = "Toque em 'Modo de Preparo' para descobrir o segredo desta receita!",
+                            text = stringResource(id = R.string.meal_card_no_instructions),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Justify
@@ -125,7 +127,7 @@ fun MealCard(
                         ) {
                             Icon(
                                 imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = "Favoritar",
+                                contentDescription = stringResource(id = R.string.meal_card_favorite),
                                 modifier = Modifier.size(18.dp),
                                 tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                             )
@@ -142,7 +144,7 @@ fun MealCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Modo de\nPreparo",
+                            text = stringResource(id = R.string.meal_card_action_button),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.Center,
                             lineHeight = androidx.compose.ui.unit.TextUnit.Unspecified
