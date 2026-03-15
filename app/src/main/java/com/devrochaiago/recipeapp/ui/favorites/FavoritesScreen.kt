@@ -22,9 +22,9 @@ fun FavoritesScreen(
     onMealClick: (String) -> Unit,
     viewModel: FavoritesViewModel = hiltViewModel()
 ) {
-    val favorites by viewModel.favorites.collectAsState()
-    
-    // Mapeia MealEntity para MealDto para usar o componente comum
+    val uiState by viewModel.uiState.collectAsState()
+    val favorites = uiState.favorites
+
     val favoriteDtos = favorites.map { entity ->
         MealDto(
             id = entity.idMeal,
@@ -54,7 +54,11 @@ fun FavoritesScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (favorites.isEmpty()) {
+        if (uiState.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (favorites.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     text = stringResource(id = R.string.favorites_empty), 

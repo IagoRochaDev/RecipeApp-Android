@@ -17,7 +17,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.devrochaiago.recipeapp.R
 import com.devrochaiago.recipeapp.ui.components.MealCard
 import com.devrochaiago.recipeapp.ui.components.MealCardShimmer
-import com.devrochaiago.recipeapp.util.Resource
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -25,10 +24,7 @@ fun SearchScreen(
     onMealClick: (String) -> Unit,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val searchState by viewModel.searchState.collectAsState()
-    val selectedFilter by viewModel.selectedFilter.collectAsState()
-    val favoriteIds by viewModel.favoriteIds.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -43,7 +39,7 @@ fun SearchScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
-                value = searchQuery,
+                value = uiState.searchQuery,
                 onValueChange = { viewModel.searchMeals(it) },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(id = R.string.search_placeholder)) },
@@ -66,37 +62,32 @@ fun SearchScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            when (searchState) {
-                is Resource.Loading -> {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        items(3) { MealCardShimmer() }
-                    }
+            if (uiState.isLoading) {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    items(3) { MealCardShimmer() }
                 }
-                is Resource.Error -> {
+            } else if (uiState.error != null) {
+                Text(
+                    text = uiState.error ?: stringResource(id = R.string.error_unknown),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            } else {
+                if (uiState.meals.isEmpty() && uiState.searchQuery.isNotEmpty()) {
                     Text(
-                        text = searchState.message ?: stringResource(id = R.string.error_unknown),
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                        text = stringResource(id = R.string.search_no_results),
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-                is Resource.Success -> {
-                    val meals = searchState.data ?: emptyList()
-                    if (meals.isEmpty() && searchQuery.isNotEmpty()) {
-                        Text(
-                            text = stringResource(id = R.string.search_no_results),
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            items(meals, key = { it.id }) { meal ->
-                                MealCard(
-                                    meal = meal,
-                                    isFavorite = favoriteIds.contains(meal.id),
-                                    onToggleFavorite = { viewModel.toggleFavorite(meal) },
-                                    onNavigateToDetail = { onMealClick(meal.id) }
-                                )
-                            }
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        items(uiState.meals, key = { it.id }) { meal ->
+                            MealCard(
+                                meal = meal,
+                                isFavorite = uiState.favoriteIds.contains(meal.id),
+                                onToggleFavorite = { viewModel.toggleFavorite(meal) },
+                                onNavigateToDetail = { onMealClick(meal.id) }
+                            )
                         }
                     }
                 }
@@ -137,7 +128,7 @@ fun SearchScreen(
                 ) {
                     viewModel.categories.forEach { category ->
                         FilterChip(
-                            selected = selectedFilter == category,
+                            selected = uiState.selectedFilter == category,
                             onClick = {
                                 viewModel.filterByCategory(category)
                                 showBottomSheet = false
@@ -162,7 +153,7 @@ fun SearchScreen(
                 ) {
                     viewModel.areas.forEach { area ->
                         FilterChip(
-                            selected = selectedFilter == area,
+                            selected = uiState.selectedFilter == area,
                             onClick = {
                                 viewModel.filterByArea(area)
                                 showBottomSheet = false

@@ -10,11 +10,18 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class DetailUiState(
+    val meal: MealDto? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val isFavorite: Boolean = false
+)
 
 @HiltViewModel
 class DetailViewModel @Inject constructor(
@@ -22,31 +29,41 @@ class DetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _mealState = MutableStateFlow<Resource<MealDto>>(Resource.Loading())
-    val mealState: StateFlow<Resource<MealDto>> = _mealState.asStateFlow()
+    private val _mealResource = MutableStateFlow<Resource<MealDto>>(Resource.Loading())
+    private val _mealId = savedStateHandle.get<String>("mealId") ?: ""
 
-    val favoriteIds: StateFlow<Set<String>> = repository.getFavorites()
-        .map { list -> list.map { it.idMeal }.toSet() }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+    private val _isFavorite = repository.getFavorites()
+        .map { list -> list.any { it.idMeal == _mealId } }
+
+    val uiState: StateFlow<DetailUiState> = combine(_mealResource, _isFavorite) { resource, favorite ->
+        when (resource) {
+            is Resource.Loading -> DetailUiState(isLoading = true, isFavorite = favorite)
+            is Resource.Success -> DetailUiState(meal = resource.data, isFavorite = favorite)
+            is Resource.Error -> DetailUiState(error = resource.message, isFavorite = favorite)
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = DetailUiState(isLoading = true)
+    )
 
     init {
-        savedStateHandle.get<String>("mealId")?.let { id ->
-            getMealDetails(id)
+        if (_mealId.isNotEmpty()) {
+            getMealDetails(_mealId)
         }
     }
 
     private fun getMealDetails(id: String) {
         viewModelScope.launch {
             repository.getMealById(id).collect { result ->
-                _mealState.value = result
+                _mealResource.value = result
             }
         }
     }
 
     fun toggleFavorite(meal: MealDto) {
-        val isFavorite = favoriteIds.value.contains(meal.id)
         viewModelScope.launch {
-            repository.toggleFavorite(meal, isCurrentlyFavorite = isFavorite)
+            repository.toggleFavorite(meal, isCurrentlyFavorite = uiState.value.isFavorite)
         }
     }
 }

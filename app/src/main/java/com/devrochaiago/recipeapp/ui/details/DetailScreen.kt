@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.devrochaiago.recipeapp.R
-import com.devrochaiago.recipeapp.util.Resource
 import com.devrochaiago.recipeapp.util.getIngredientsList
 import android.content.Intent
 import android.net.Uri
@@ -35,8 +34,7 @@ fun DetailScreen(
     onNavigateBack: () -> Unit,
     viewModel: DetailViewModel = hiltViewModel()
 ) {
-    val state by viewModel.mealState.collectAsState()
-    val favoriteIds by viewModel.favoriteIds.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     Scaffold(
@@ -70,138 +68,133 @@ fun DetailScreen(
             .fillMaxSize()
             .padding(paddingValues)
         ) {
-            when (state) {
-                is Resource.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                is Resource.Error -> {
-                    Text(
-                        text = state.message ?: stringResource(id = R.string.error_load_details),
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                is Resource.Success -> {
-                    val meal = (state as Resource.Success).data
-                    if (meal != null) {
-                        val ingredients = meal.getIngredientsList()
-                        val context = LocalContext.current
-                        val isFavorite = favoriteIds.contains(meal.id)
+            if (uiState.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (uiState.error != null) {
+                Text(
+                    text = uiState.error ?: stringResource(id = R.string.error_load_details),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                val meal = uiState.meal
+                if (meal != null) {
+                    val ingredients = meal.getIngredientsList()
+                    val context = LocalContext.current
 
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-                        ) {
-                            // Imagem com Botão de Favorito sobreposto
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                AsyncImage(
-                                    model = meal.thumbnail,
-                                    contentDescription = meal.name,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(250.dp),
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        // Imagem com Botão de Favorito sobreposto
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            AsyncImage(
+                                model = meal.thumbnail,
+                                contentDescription = meal.name,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(250.dp),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                            
+                            IconButton(
+                                onClick = { viewModel.toggleFavorite(meal) },
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                                ),
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(16.dp)
+                                    .size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (uiState.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = stringResource(id = R.string.meal_card_favorite),
+                                    modifier = Modifier.size(24.dp),
+                                    tint = if (uiState.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                                 )
-                                
-                                IconButton(
-                                    onClick = { viewModel.toggleFavorite(meal) },
-                                    colors = IconButtonDefaults.iconButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
-                                    ),
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(16.dp)
-                                        .size(40.dp)
+                            }
+                        }
+
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = meal.name,
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = stringResource(id = R.string.detail_category, meal.category ?: ""),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+
+
+                            Text(
+                                text = stringResource(id = R.string.detail_ingredients),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    ingredients.forEach { (ingredient, measure) ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(text = "• $ingredient", fontWeight = FontWeight.Medium)
+                                            Text(text = measure, color = MaterialTheme.colorScheme.primary)
+                                        }
+                                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), thickness = 0.5.dp)
+                                    }
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
+                            
+                            if (!meal.youtubeUrl.isNullOrBlank()) {
+                                Button(
+                                    onClick = {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(meal.youtubeUrl))
+                                        context.startActivity(intent)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE52D27)),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Icon(
-                                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                        contentDescription = stringResource(id = R.string.meal_card_favorite),
-                                        modifier = Modifier.size(24.dp),
-                                        tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                        imageVector = Icons.Default.PlayArrow,
+                                        contentDescription = null,
+                                        tint = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(id = R.string.detail_youtube), 
+                                        color = Color.White, 
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
-                            }
-
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = meal.name,
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = stringResource(id = R.string.detail_category, meal.category ?: ""),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
                                 Spacer(modifier = Modifier.height(24.dp))
-
-
-                                Text(
-                                    text = stringResource(id = R.string.detail_ingredients),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                                ) {
-                                    Column(modifier = Modifier.padding(16.dp)) {
-                                        ingredients.forEach { (ingredient, measure) ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 4.dp),
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text(text = "• $ingredient", fontWeight = FontWeight.Medium)
-                                                Text(text = measure, color = MaterialTheme.colorScheme.primary)
-                                            }
-                                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), thickness = 0.5.dp)
-                                        }
-                                    }
-                                }
-                                
-                                Spacer(modifier = Modifier.height(24.dp))
-                                
-                                if (!meal.youtubeUrl.isNullOrBlank()) {
-                                    Button(
-                                        onClick = {
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(meal.youtubeUrl))
-                                            context.startActivity(intent)
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE52D27)),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PlayArrow,
-                                            contentDescription = null,
-                                            tint = Color.White
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = stringResource(id = R.string.detail_youtube), 
-                                            color = Color.White, 
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(24.dp))
-                                }
-                                
-                                Text(
-                                    text = stringResource(id = R.string.detail_instructions),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = meal.instructions ?: stringResource(id = R.string.detail_no_instructions),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    textAlign = TextAlign.Justify
-                                )
-                                Spacer(modifier = Modifier.height(32.dp))
                             }
+                            
+                            Text(
+                                text = stringResource(id = R.string.detail_instructions),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = meal.instructions ?: stringResource(id = R.string.detail_no_instructions),
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Justify
+                              )
+                            Spacer(modifier = Modifier.height(32.dp))
                         }
                     }
                 }

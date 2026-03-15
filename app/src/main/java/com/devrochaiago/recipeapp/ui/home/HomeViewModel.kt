@@ -9,24 +9,41 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class HomeUiState(
+    val meal: MealDto? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val favoriteIds: Set<String> = emptySet()
+)
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: MealRepository
 ) : ViewModel() {
 
-    private val _randomMealState = MutableStateFlow<Resource<MealDto>>(Resource.Loading())
-    val randomMealState: StateFlow<Resource<MealDto>> = _randomMealState.asStateFlow()
-
-    // Observa a lista de favoritos para saber se a receita atual está nela
-    val favoriteIds: StateFlow<Set<String>> = repository.getFavorites()
+    private val _randomMealResource = MutableStateFlow<Resource<MealDto>>(Resource.Loading())
+    
+    private val _favoriteIds = repository.getFavorites()
         .map { list -> list.map { it.idMeal }.toSet() }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    val uiState: StateFlow<HomeUiState> = combine(_randomMealResource, _favoriteIds) { resource, favorites ->
+        when (resource) {
+            is Resource.Loading -> HomeUiState(isLoading = true, favoriteIds = favorites)
+            is Resource.Success -> HomeUiState(meal = resource.data, favoriteIds = favorites)
+            is Resource.Error -> HomeUiState(error = resource.message, favoriteIds = favorites)
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = HomeUiState(isLoading = true)
+    )
 
     init {
         fetchRandomMeal()
@@ -35,13 +52,13 @@ class HomeViewModel @Inject constructor(
     fun fetchRandomMeal() {
         viewModelScope.launch {
             repository.getRandomMeal().collect { result ->
-                _randomMealState.value = result
+                _randomMealResource.value = result
             }
         }
     }
 
     fun toggleFavorite(meal: MealDto) {
-        val isFavorite = favoriteIds.value.contains(meal.id)
+        val isFavorite = uiState.value.favoriteIds.contains(meal.id)
         viewModelScope.launch {
             repository.toggleFavorite(meal, isCurrentlyFavorite = isFavorite)
         }

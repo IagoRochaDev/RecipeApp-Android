@@ -16,19 +16,16 @@ import com.devrochaiago.recipeapp.R
 import com.devrochaiago.recipeapp.data.remote.MealDto
 import com.devrochaiago.recipeapp.ui.components.MealCard
 import com.devrochaiago.recipeapp.ui.components.MealCardShimmer
-import com.devrochaiago.recipeapp.util.Resource
 
 @Composable
 fun HomeScreen(
     onMealClick: (String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val state by viewModel.randomMealState.collectAsState()
-    val favoriteIds by viewModel.favoriteIds.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     HomeScreenContent(
-        state = state,
-        favoriteIds = favoriteIds,
+        uiState = uiState,
         onRefresh = { viewModel.fetchRandomMeal() },
         onToggleFavorite = { meal -> viewModel.toggleFavorite(meal) },
         onNavigateToDetail = onMealClick
@@ -37,8 +34,7 @@ fun HomeScreen(
 
 @Composable
 fun HomeScreenContent(
-    state: Resource<MealDto>,
-    favoriteIds: Set<String>,
+    uiState: HomeUiState,
     onRefresh: () -> Unit,
     onToggleFavorite: (MealDto) -> Unit = {},
     onNavigateToDetail: (String) -> Unit = {}
@@ -68,7 +64,7 @@ fun HomeScreenContent(
                     )
                 }
 
-                if (state !is Resource.Loading) {
+                if (!uiState.isLoading) {
                     Button(
                         onClick = onRefresh,
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
@@ -90,32 +86,25 @@ fun HomeScreenContent(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        when (state) {
-            is Resource.Loading -> {
-                items(1) {
-                    MealCardShimmer()
-                }
+        if (uiState.isLoading) {
+            item {
+                MealCardShimmer()
             }
-            is Resource.Success -> {
-                item {
-                    val meal = state.data
-                    if (meal != null) {
-                        MealCard(
-                            meal = meal,
-                            isFavorite = favoriteIds.contains(meal.id),
-                            onToggleFavorite = { onToggleFavorite(meal) },
-                            onNavigateToDetail = { onNavigateToDetail(meal.id) }
-                        )
-                    }
-                }
+        } else if (uiState.error != null) {
+            item {
+                Text(
+                    text = uiState.error,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
-            is Resource.Error -> {
-                item {
-                    Text(
-                        text = state.message ?: stringResource(id = R.string.error_unknown),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
+        } else if (uiState.meal != null) {
+            item {
+                MealCard(
+                    meal = uiState.meal,
+                    isFavorite = uiState.favoriteIds.contains(uiState.meal.id),
+                    onToggleFavorite = { onToggleFavorite(uiState.meal) },
+                    onNavigateToDetail = { onNavigateToDetail(uiState.meal.id) }
+                )
             }
         }
     }
