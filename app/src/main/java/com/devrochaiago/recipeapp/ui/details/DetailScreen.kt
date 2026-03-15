@@ -1,4 +1,4 @@
-package com.devrochaiago.recipeapp.ui.screens
+package com.devrochaiago.recipeapp.ui.details
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.devrochaiago.recipeapp.R
-import com.devrochaiago.recipeapp.ui.viewmodels.DetailViewModel
 import com.devrochaiago.recipeapp.util.Resource
 import com.devrochaiago.recipeapp.util.getIngredientsList
 import android.content.Intent
@@ -29,7 +28,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

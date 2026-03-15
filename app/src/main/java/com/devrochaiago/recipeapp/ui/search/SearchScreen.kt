@@ -1,4 +1,4 @@
-package com.devrochaiago.recipeapp.ui.screens
+package com.devrochaiago.recipeapp.ui.search
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,7 +17,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.devrochaiago.recipeapp.R
 import com.devrochaiago.recipeapp.ui.components.MealCard
 import com.devrochaiago.recipeapp.ui.components.MealCardShimmer
-import com.devrochaiago.recipeapp.ui.viewmodels.SearchViewModel
 import com.devrochaiago.recipeapp.util.Resource
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)

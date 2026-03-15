@@ -1,4 +1,4 @@
-package com.devrochaiago.recipeapp.ui.viewmodels
+package com.devrochaiago.recipeapp.ui.details
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel

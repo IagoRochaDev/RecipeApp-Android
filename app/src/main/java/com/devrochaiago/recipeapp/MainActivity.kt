@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.devrochaiago.recipeapp.ui.theme.RecipeAppTheme
 import dagger.hilt.android.AndroidEntryPoint
-import com.devrochaiago.recipeapp.ui.screens.MainScreen
+import com.devrochaiago.recipeapp.ui.MainScreen
 
 
 @AndroidEntryPoint

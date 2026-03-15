@@ -1,4 +1,4 @@
-package com.devrochaiago.recipeapp.ui.screens
+package com.devrochaiago.recipeapp.ui.home
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,7 +16,6 @@ import com.devrochaiago.recipeapp.R
 import com.devrochaiago.recipeapp.data.remote.MealDto
 import com.devrochaiago.recipeapp.ui.components.MealCard
 import com.devrochaiago.recipeapp.ui.components.MealCardShimmer
-import com.devrochaiago.recipeapp.ui.viewmodels.HomeViewModel
 import com.devrochaiago.recipeapp.util.Resource
 
 @Composable

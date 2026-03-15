@@ -1,4 +1,4 @@
-package com.devrochaiago.recipeapp.ui.screens
+package com.devrochaiago.recipeapp.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
@@ -15,6 +15,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.devrochaiago.recipeapp.ui.theme.RecipeAppTheme
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.devrochaiago.recipeapp.ui.home.HomeScreen
+import com.devrochaiago.recipeapp.ui.search.SearchScreen
+import com.devrochaiago.recipeapp.ui.favorites.FavoritesScreen
+import com.devrochaiago.recipeapp.ui.details.DetailScreen
 
 
 @Composable

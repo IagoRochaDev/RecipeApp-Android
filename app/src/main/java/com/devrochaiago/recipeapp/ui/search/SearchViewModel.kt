@@ -1,4 +1,4 @@
-package com.devrochaiago.recipeapp.ui.viewmodels
+package com.devrochaiago.recipeapp.ui.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
