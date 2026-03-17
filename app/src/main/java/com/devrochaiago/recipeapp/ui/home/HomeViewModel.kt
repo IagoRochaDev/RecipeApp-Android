@@ -28,17 +28,13 @@ class HomeViewModel @Inject constructor(
     private val repository: MealRepository
 ) : ViewModel() {
 
-    private val _randomMealResource = MutableStateFlow<Resource<MealDto>>(Resource.Loading())
+    private val _mealPart = MutableStateFlow(HomeUiState(isLoading = true))
     
     private val _favoriteIds = repository.getFavorites()
         .map { list -> list.map { it.idMeal }.toSet() }
 
-    val uiState: StateFlow<HomeUiState> = combine(_randomMealResource, _favoriteIds) { resource, favorites ->
-        when (resource) {
-            is Resource.Loading -> HomeUiState(isLoading = true, favoriteIds = favorites)
-            is Resource.Success -> HomeUiState(meal = resource.data, favoriteIds = favorites)
-            is Resource.Error -> HomeUiState(error = resource.message, favoriteIds = favorites)
-        }
+    val uiState: StateFlow<HomeUiState> = combine(_mealPart, _favoriteIds) { state, favorites ->
+        state.copy(favoriteIds = favorites)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -52,7 +48,13 @@ class HomeViewModel @Inject constructor(
     fun fetchRandomMeal() {
         viewModelScope.launch {
             repository.getRandomMeal().collect { result ->
-                _randomMealResource.value = result
+                _mealPart.update { state ->
+                    when (result) {
+                        is Resource.Loading -> state.copy(isLoading = true, error = null, meal = null)
+                        is Resource.Success -> state.copy(isLoading = false, meal = result.data, error = null)
+                        is Resource.Error -> state.copy(isLoading = false, error = result.message, meal = null)
+                    }
+                }
             }
         }
     }

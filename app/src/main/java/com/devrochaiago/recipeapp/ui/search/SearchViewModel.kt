@@ -9,7 +9,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -33,7 +32,7 @@ class SearchViewModel @Inject constructor(
 
     private val _searchQuery = MutableStateFlow("")
     private val _selectedFilter = MutableStateFlow<String?>(null)
-    private val _searchResource = MutableStateFlow<Resource<List<MealDto>>>(Resource.Success(emptyList()))
+    private val _searchPart = MutableStateFlow(SearchUiState())
     
     private val _favoriteIds = repository.getFavorites()
         .map { list -> list.map { it.idMeal }.toSet() }
@@ -41,29 +40,14 @@ class SearchViewModel @Inject constructor(
     val uiState: StateFlow<SearchUiState> = combine(
         _searchQuery,
         _selectedFilter,
-        _searchResource,
+        _searchPart,
         _favoriteIds
-    ) { query, filter, resource, favorites ->
-        when (resource) {
-            is Resource.Loading -> SearchUiState(
-                searchQuery = query,
-                selectedFilter = filter,
-                isLoading = true,
-                favoriteIds = favorites
-            )
-            is Resource.Success -> SearchUiState(
-                searchQuery = query,
-                selectedFilter = filter,
-                meals = resource.data ?: emptyList(),
-                favoriteIds = favorites
-            )
-            is Resource.Error -> SearchUiState(
-                searchQuery = query,
-                selectedFilter = filter,
-                error = resource.message,
-                favoriteIds = favorites
-            )
-        }
+    ) { query, filter, searchState, favorites ->
+        searchState.copy(
+            searchQuery = query,
+            selectedFilter = filter,
+            favoriteIds = favorites
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -78,7 +62,7 @@ class SearchViewModel @Inject constructor(
         _selectedFilter.value = null
 
         if (query.isBlank()) {
-            _searchResource.value = Resource.Success(emptyList())
+            _searchPart.update { it.copy(meals = emptyList(), isLoading = false, error = null) }
             return
         }
 
@@ -86,17 +70,27 @@ class SearchViewModel @Inject constructor(
             val isCategory = categories.any { it.equals(query, ignoreCase = true) }
             val isArea = areas.any { it.equals(query, ignoreCase = true) }
 
-            when {
+            val flow = when {
                 isCategory -> {
                     val exactCategory = categories.first { it.equals(query, ignoreCase = true) }
-                    repository.getMealsByCategory(exactCategory).collect { _searchResource.value = it }
+                    repository.getMealsByCategory(exactCategory)
                 }
                 isArea -> {
                     val exactArea = areas.first { it.equals(query, ignoreCase = true) }
-                    repository.getMealsByArea(exactArea).collect { _searchResource.value = it }
+                    repository.getMealsByArea(exactArea)
                 }
                 else -> {
-                    repository.searchMeals(query).collect { _searchResource.value = it }
+                    repository.searchMeals(query)
+                }
+            }
+            
+            flow.collect { result ->
+                _searchPart.update { state ->
+                    when (result) {
+                        is Resource.Loading -> state.copy(isLoading = true, error = null)
+                        is Resource.Success -> state.copy(isLoading = false, meals = result.data ?: emptyList(), error = null)
+                        is Resource.Error -> state.copy(isLoading = false, error = result.message)
+                    }
                 }
             }
         }
@@ -106,7 +100,15 @@ class SearchViewModel @Inject constructor(
         _searchQuery.value = category
         _selectedFilter.value = category
         viewModelScope.launch {
-            repository.getMealsByCategory(category).collect { _searchResource.value = it }
+            repository.getMealsByCategory(category).collect { result ->
+                _searchPart.update { state ->
+                    when (result) {
+                        is Resource.Loading -> state.copy(isLoading = true, error = null)
+                        is Resource.Success -> state.copy(isLoading = false, meals = result.data ?: emptyList(), error = null)
+                        is Resource.Error -> state.copy(isLoading = false, error = result.message)
+                    }
+                }
+            }
         }
     }
 
@@ -114,7 +116,15 @@ class SearchViewModel @Inject constructor(
         _searchQuery.value = area
         _selectedFilter.value = area
         viewModelScope.launch {
-            repository.getMealsByArea(area).collect { _searchResource.value = it }
+            repository.getMealsByArea(area).collect { result ->
+                _searchPart.update { state ->
+                    when (result) {
+                        is Resource.Loading -> state.copy(isLoading = true, error = null)
+                        is Resource.Success -> state.copy(isLoading = false, meals = result.data ?: emptyList(), error = null)
+                        is Resource.Error -> state.copy(isLoading = false, error = result.message)
+                    }
+                }
+            }
         }
     }
 

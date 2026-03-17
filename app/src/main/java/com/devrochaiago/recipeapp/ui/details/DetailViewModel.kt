@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -29,18 +30,14 @@ class DetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _mealResource = MutableStateFlow<Resource<MealDto>>(Resource.Loading())
+    private val _detailPart = MutableStateFlow(DetailUiState(isLoading = true))
     private val _mealId = savedStateHandle.get<String>("mealId") ?: ""
 
     private val _isFavorite = repository.getFavorites()
         .map { list -> list.any { it.idMeal == _mealId } }
 
-    val uiState: StateFlow<DetailUiState> = combine(_mealResource, _isFavorite) { resource, favorite ->
-        when (resource) {
-            is Resource.Loading -> DetailUiState(isLoading = true, isFavorite = favorite)
-            is Resource.Success -> DetailUiState(meal = resource.data, isFavorite = favorite)
-            is Resource.Error -> DetailUiState(error = resource.message, isFavorite = favorite)
-        }
+    val uiState: StateFlow<DetailUiState> = combine(_detailPart, _isFavorite) { state, favorite ->
+        state.copy(isFavorite = favorite)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -56,7 +53,13 @@ class DetailViewModel @Inject constructor(
     private fun getMealDetails(id: String) {
         viewModelScope.launch {
             repository.getMealById(id).collect { result ->
-                _mealResource.value = result
+                _detailPart.update { state ->
+                    when (result) {
+                        is Resource.Loading -> state.copy(isLoading = true, error = null, meal = null)
+                        is Resource.Success -> state.copy(isLoading = false, meal = result.data, error = null)
+                        is Resource.Error -> state.copy(isLoading = false, error = result.message, meal = null)
+                    }
+                }
             }
         }
     }
