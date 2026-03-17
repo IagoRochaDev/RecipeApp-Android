@@ -5,10 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.devrochaiago.recipeapp.data.local.MealEntity
 import com.devrochaiago.recipeapp.data.repository.MealRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -22,13 +22,20 @@ class FavoritesViewModel @Inject constructor(
     private val repository: MealRepository
 ) : ViewModel() {
 
-    val uiState: StateFlow<FavoritesUiState> = repository.getFavorites()
-        .map { FavoritesUiState(favorites = it, isLoading = false) }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = FavoritesUiState(isLoading = true)
-        )
+    private val _uiState = MutableStateFlow(FavoritesUiState(isLoading = true))
+    val uiState: StateFlow<FavoritesUiState> = _uiState.asStateFlow()
+
+    init {
+        observeFavorites()
+    }
+
+    private fun observeFavorites() {
+        viewModelScope.launch {
+            repository.getFavorites().collect { list ->
+                _uiState.update { it.copy(favorites = list, isLoading = false) }
+            }
+        }
+    }
 
     fun removeFavorite(meal: MealEntity) {
         viewModelScope.launch {

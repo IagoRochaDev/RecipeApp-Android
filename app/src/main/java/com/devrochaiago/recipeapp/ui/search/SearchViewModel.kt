@@ -7,11 +7,8 @@ import com.devrochaiago.recipeapp.data.repository.MealRepository
 import com.devrochaiago.recipeapp.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,39 +27,30 @@ class SearchViewModel @Inject constructor(
     private val repository: MealRepository
 ) : ViewModel() {
 
-    private val _searchQuery = MutableStateFlow("")
-    private val _selectedFilter = MutableStateFlow<String?>(null)
-    private val _searchPart = MutableStateFlow(SearchUiState())
-    
-    private val _favoriteIds = repository.getFavorites()
-        .map { list -> list.map { it.idMeal }.toSet() }
-
-    val uiState: StateFlow<SearchUiState> = combine(
-        _searchQuery,
-        _selectedFilter,
-        _searchPart,
-        _favoriteIds
-    ) { query, filter, searchState, favorites ->
-        searchState.copy(
-            searchQuery = query,
-            selectedFilter = filter,
-            favoriteIds = favorites
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = SearchUiState()
-    )
+    private val _uiState = MutableStateFlow(SearchUiState())
+    val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
     val categories = listOf("Beef", "Chicken", "Dessert", "Pasta", "Seafood", "Vegan", "Breakfast")
     val areas = listOf("Italian", "Mexican", "Japanese", "Indian", "French", "American")
 
+    init {
+        observeFavorites()
+    }
+
+    private fun observeFavorites() {
+        viewModelScope.launch {
+            repository.getFavorites().collect { list ->
+                val favoriteIds = list.map { it.idMeal }.toSet()
+                _uiState.update { it.copy(favoriteIds = favoriteIds) }
+            }
+        }
+    }
+
     fun searchMeals(query: String) {
-        _searchQuery.value = query
-        _selectedFilter.value = null
+        _uiState.update { it.copy(searchQuery = query, selectedFilter = null) }
 
         if (query.isBlank()) {
-            _searchPart.update { it.copy(meals = emptyList(), isLoading = false, error = null) }
+            _uiState.update { it.copy(meals = emptyList(), isLoading = false, error = null) }
             return
         }
 
@@ -85,7 +73,7 @@ class SearchViewModel @Inject constructor(
             }
             
             flow.collect { result ->
-                _searchPart.update { state ->
+                _uiState.update { state ->
                     when (result) {
                         is Resource.Loading -> state.copy(isLoading = true, error = null)
                         is Resource.Success -> state.copy(isLoading = false, meals = result.data ?: emptyList(), error = null)
@@ -97,39 +85,35 @@ class SearchViewModel @Inject constructor(
     }
 
     fun filterByCategory(category: String) {
-        _searchQuery.value = category
-        _selectedFilter.value = category
+        _uiState.update { it.copy(searchQuery = category, selectedFilter = category) }
         viewModelScope.launch {
             repository.getMealsByCategory(category).collect { result ->
-                _searchPart.update { state ->
-                    when (result) {
-                        is Resource.Loading -> state.copy(isLoading = true, error = null)
-                        is Resource.Success -> state.copy(isLoading = false, meals = result.data ?: emptyList(), error = null)
-                        is Resource.Error -> state.copy(isLoading = false, error = result.message)
-                    }
-                }
+                updateSearchState(result)
             }
         }
     }
 
     fun filterByArea(area: String) {
-        _searchQuery.value = area
-        _selectedFilter.value = area
+        _uiState.update { it.copy(searchQuery = area, selectedFilter = area) }
         viewModelScope.launch {
             repository.getMealsByArea(area).collect { result ->
-                _searchPart.update { state ->
-                    when (result) {
-                        is Resource.Loading -> state.copy(isLoading = true, error = null)
-                        is Resource.Success -> state.copy(isLoading = false, meals = result.data ?: emptyList(), error = null)
-                        is Resource.Error -> state.copy(isLoading = false, error = result.message)
-                    }
-                }
+                updateSearchState(result)
+            }
+        }
+    }
+
+    private fun updateSearchState(result: Resource<List<MealDto>>) {
+        _uiState.update { state ->
+            when (result) {
+                is Resource.Loading -> state.copy(isLoading = true, error = null)
+                is Resource.Success -> state.copy(isLoading = false, meals = result.data ?: emptyList(), error = null)
+                is Resource.Error -> state.copy(isLoading = false, error = result.message)
             }
         }
     }
 
     fun toggleFavorite(meal: MealDto) {
-        val isFavorite = uiState.value.favoriteIds.contains(meal.id)
+        val isFavorite = _uiState.value.favoriteIds.contains(meal.id)
         viewModelScope.launch {
             repository.toggleFavorite(meal, isCurrentlyFavorite = isFavorite)
         }
